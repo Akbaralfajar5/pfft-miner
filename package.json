@@ -1,0 +1,13 @@
+{
+  "name": "pfft-miner",
+  "version": "1.0.0",
+  "description": "PFFT (Pow Free Fair Token) GPU miner — keccak256 CUDA + Node.js",
+  "main": "miner.js",
+  "scripts": {
+    "start": "node miner.js",
+    "build": "nvcc -O3 -arch=sm_86 -o pfft_miner pfft_miner.cu"
+  },
+  "dependencies": {
+    "ethers": "^6.13.0"
+  }
+}
