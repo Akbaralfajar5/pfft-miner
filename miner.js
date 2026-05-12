@@ -29,9 +29,13 @@ const ABI = [
   "function freeMint(uint256 powNonce) external",
   "function currentPowChallenge(address user) view returns (bytes32)",
   "function POW_TARGET() view returns (uint256)",
+  "function POW_DIFFICULTY_BITS() view returns (uint256)",
+  "function currentPowStage() view returns (uint256)",
   "function getInfo() view returns (uint256 currentMinted, uint256 remainingSupply, uint256 currentDecayRate, uint256 nextMintAmount)",
   "function minted(address user) view returns (uint256)",
-  "function WALLET_MINT_CAP() view returns (uint256)",
+  "function MAX_SUPPLY() view returns (uint256)",
+  "function BASE_MINT_AMOUNT() view returns (uint256)",
+  "function calculateActualMint(uint256 requested) view returns (uint256)",
 ];
 
 const CUDA_BINARY = path.join(__dirname, "pfft_miner");
@@ -120,15 +124,12 @@ async function main() {
   log(`Contract: ${CONTRACT_ADDRESS}`);
   log(`GPU     : ${opts.gpu}`);
 
-  // Check wallet cap
-  const walletMintCap = await contract.WALLET_MINT_CAP();
+  // Check wallet minted so far
   const alreadyMinted = await contract.minted(wallet.address);
-  log(`Wallet minted: ${ethers.formatUnits(alreadyMinted, 18)} / ${ethers.formatUnits(walletMintCap, 18)} PFFT`);
-
-  if (alreadyMinted >= walletMintCap) {
-    log("Wallet mint cap reached — cannot mint more from this wallet", "warn");
-    process.exit(0);
-  }
+  const powStage = await contract.currentPowStage();
+  const diffBits = await contract.POW_DIFFICULTY_BITS();
+  log(`Wallet minted: ${ethers.formatUnits(alreadyMinted, 18)} PFFT`);
+  log(`PoW stage: ${powStage}  difficulty: ${diffBits}-bit`);
 
   let totalMints = 0;
   let totalPfft = 0n;
@@ -205,14 +206,6 @@ async function main() {
         log(`Etherscan: https://etherscan.io/tx/${tx.hash}`);
       } else {
         log(`Tx failed: ${tx.hash}`, "err");
-      }
-
-      // Check if wallet cap reached
-      const newMinted = await contract.minted(wallet.address);
-      if (newMinted >= walletMintCap) {
-        log("Wallet mint cap reached!", "ok");
-        log(`Total: ${totalMints} mints, ${ethers.formatUnits(totalPfft, 18)} PFFT`);
-        break;
       }
 
       await sleep(1000);
